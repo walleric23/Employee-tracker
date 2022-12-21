@@ -1,8 +1,9 @@
+// pulled in packages
 const inquirer = require("inquirer");
 const mysql = require("mysql2");
 const cTable = require("console.table");
 require("dotenv").config();
-
+// mySQL connection
 const db = mysql.createConnection(
   {
     host: "localhost",
@@ -14,7 +15,7 @@ const db = mysql.createConnection(
   },
   console.log(`Connected to the db_work database.`)
 );
-
+// inital prompt of questions
 function menu() {
   inquirer
     .prompt({
@@ -32,16 +33,22 @@ function menu() {
       ],
     })
     .then((res) => {
+      // if selected departments are displayed
       if (res.action === "view departments") {
         viewDepartments();
+        // if selected roles are displayed
       } else if (res.action === "view roles") {
         viewRoles();
+        // if selected employees are displayed
       } else if (res.action === "view employees") {
         viewEmployees();
+        // if selected add department function runs and presents questions
       } else if (res.action === "add department") {
         addDepartment();
+        // if selected add role function runs and presents questions
       } else if (res.action === "add role") {
         addRole();
+        // if selected add employee function runs and presents questions
       } else if (res.action === "add employee") {
         addEmployee();
       } else if (res.action === "update employee role") {
@@ -49,28 +56,29 @@ function menu() {
       }
     });
 }
-
+// function for viewing departments
 function viewDepartments() {
   db.query("select * FROM department", (err, data) => {
     console.table(data);
     menu();
   });
 }
-
+// function for viewing roles
 function viewRoles() {
   db.query("select * FROM role", (err, data) => {
+    // shows data in a table in the console
     console.table(data);
     menu();
   });
 }
-
+// function for viewing employees
 function viewEmployees() {
   db.query("select * FROM employee", (err, data) => {
     console.table(data);
     menu();
   });
 }
-
+// function for adding departments
 function addDepartment() {
   inquirer
     .prompt({
@@ -83,14 +91,16 @@ function addDepartment() {
         "insert into department (department_name) values(?)",
         [res.department_name],
         (err, data) => {
+          // shows data in console table
           console.table(data);
           menu();
         }
       );
     });
 }
-
+// function for adding role
 function addRole() {
+  // selects from department data
   db.query("SELECT * FROM DEPARTMENT", (err, data) => {
     if (err) throw err;
     const department = data.map(({ id, department_name }) => ({
@@ -118,6 +128,7 @@ function addRole() {
       ])
       .then((res) => {
         db.query(
+          // joins into table with corresponding values
           "insert into role (title, salary, department_id) values(?, ?, ?)",
           [res.role, res.salary, res.department_id],
           (err, data) => {
@@ -128,13 +139,13 @@ function addRole() {
       });
   });
 }
-
+// function to add employees
 function addEmployee() {
   db.query("SELECT * FROM ROLE", (err, data) => {
     if (err) throw err;
-    const employee = data.map(({ department_id, title }) => ({
-      name: title,
-      value: department_id,
+    const role = data.map(({ department_id, title }) => ({
+      name: department_id,
+      value: title,
     }));
     inquirer
       .prompt([
@@ -144,15 +155,21 @@ function addEmployee() {
           name: "firstName",
         },
         {
-          type: "number",
+          type: "input",
           message: "what is the last name",
           name: "lastName",
+        },
+        {
+          type: "list",
+          message: "what is their managers ID?",
+          name: "manager_id",
+          choices: manager_id,
         },
       ])
       .then((res) => {
         db.query(
-          "insert into role (title, salary, department_id) values(?, ?, ?)",
-          [res.first_name, res.last_name, res.department_id],
+          "insert into employee (first_name, last_name, role_id, manager_id) values(?, ?, ?, ?)",
+          [res.first_name, res.last_name, res.role_id, res.manager_id],
           (err, data) => {
             console.table(data);
             menu();
