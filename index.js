@@ -52,6 +52,7 @@ function menu() {
       } else if (res.action === "add employee") {
         addEmployee();
       } else if (res.action === "update employee role") {
+        updateEmployee();
       } else {
       }
     });
@@ -88,9 +89,10 @@ function addDepartment() {
     })
     .then((res) => {
       db.query(
-        "insert into department (department_name) values(?)",
-        [res.department_name],
+        "insert into department (name) values(?)",
+        [res.name],
         (err, data) => {
+          console.log(err);
           // shows data in console table
           console.table(data);
           menu();
@@ -141,41 +143,102 @@ function addRole() {
 }
 // function to add employees
 function addEmployee() {
-  db.query("SELECT * FROM ROLE", (err, data) => {
+  db.query("SELECT * FROM role", (err, data) => {
     if (err) throw err;
-    const role = data.map(({ department_id, title }) => ({
-      name: department_id,
-      value: title,
+    const roles = data.map(({ department_id, title }) => ({
+      name: title,
+      value: department_id,
     }));
-    inquirer
-      .prompt([
-        {
-          type: "input",
-          message: "what is the first name?",
-          name: "firstName",
-        },
-        {
-          type: "input",
-          message: "what is the last name",
-          name: "lastName",
-        },
-        {
-          type: "list",
-          message: "what is their managers ID?",
-          name: "manager_id",
-          choices: manager_id,
-        },
-      ])
-      .then((res) => {
-        db.query(
-          "insert into employee (first_name, last_name, role_id, manager_id) values(?, ?, ?, ?)",
-          [res.first_name, res.last_name, res.role_id, res.manager_id],
-          (err, data) => {
-            console.table(data);
-            menu();
-          }
-        );
+    db.query("SELECT * FROM employee", (err, data) => {
+      console.log(data);
+      const employees = data.map(({ first_name, last_name, id }) => {
+        return {
+          name: first_name + " " + last_name,
+          value: id,
+        };
       });
+      inquirer
+        .prompt([
+          {
+            type: "input",
+            message: "what is the first name?",
+            name: "first_name",
+          },
+          {
+            type: "input",
+            message: "what is the last name",
+            name: "last_name",
+          },
+          {
+            type: "list",
+            message: "what is their managers ID?",
+            name: "manager_id",
+            choices: employees,
+          },
+          {
+            type: "list",
+            message: "what is the employee's role?",
+            name: "role_id",
+            choices: roles,
+          },
+        ])
+        .then((res) => {
+          db.query(
+            "insert into employee (first_name, last_name, role_id, manager_id) values(?, ?, ?, ?)",
+            [res.first_name, res.last_name, res.role_id, res.manager_id],
+            (err, data) => {
+              console.log(err);
+              console.table(data);
+              menu();
+            }
+          );
+        });
+    });
+  });
+}
+
+function updateEmployee() {
+  db.query("SELECT * FROM role", (err, data) => {
+    if (err) throw err;
+    const roles = data.map(({ department_id, title }) => ({
+      name: title,
+      value: department_id,
+    }));
+    db.query("SELECT * FROM employee", (err, data) => {
+      console.log(data);
+      const employees = data.map(({ first_name, last_name, id }) => {
+        return {
+          name: first_name + " " + last_name,
+          value: id,
+        };
+      });
+      inquirer
+        .prompt([
+          {
+            type: "list",
+            message: "who is the employee?",
+            name: "employee_id",
+            choices: employees,
+          },
+          {
+            type: "list",
+            message: "what is the employee's new role",
+            name: "role_id",
+            choices: roles,
+          },
+        ])
+        .then((res) => {
+          db.query(
+            "update employee set role_id = ? where id = ?",
+            [res.role_id, res.employee_id],
+            (err, data) => {
+              console.log(err);
+              console.table(data);
+              menu();
+            }
+          );
+        });
+    });
   });
 }
 menu();
